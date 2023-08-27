@@ -4,6 +4,8 @@ import dotenv from "dotenv";
 import cors from "cors";
 
 import userRoutes from "./routes/users.js";
+import itemRoutes from "./routes/items.js";
+import orderRoutes from "./routes/orders.js";
 
 dotenv.config();
 
@@ -23,5 +25,7 @@ mongoose
   .catch((err) => console.log(err));
 
 app.use("/api/users", userRoutes);
+app.use("/api/items", itemRoutes);
+app.use("/api/orders", orderRoutes);
 
 app.listen(PORT, () => console.log(`server running on Port:${PORT}`));

@@ -1,12 +1,10 @@
 import mongoose from "mongoose";
 
 const orderSchema = new mongoose.Schema({
-  customername: {
-    type: String,
-    index: true,
-    unique: true,
-    required: true,
-  },
+  customerName: { type: String, required: true },
+  shopName: { type: String },
+  createdAt: { type: Date, default: Date.now },
+  orderItems: [{ type: mongoose.Schema.Types.ObjectId, ref: "OrderItem" }],
 });
 
 const Order = mongoose.model("Order", orderSchema);

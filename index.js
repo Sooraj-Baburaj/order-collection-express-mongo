@@ -6,6 +6,7 @@ import cors from "cors";
 import userRoutes from "./routes/users.js";
 import itemRoutes from "./routes/items.js";
 import orderRoutes from "./routes/orders.js";
+import orderItemRoutes from "./routes/orderItems.js";
 
 dotenv.config();
 
@@ -27,5 +28,6 @@ mongoose
 app.use("/api/users", userRoutes);
 app.use("/api/items", itemRoutes);
 app.use("/api/orders", orderRoutes);
+app.use("/api/order-items", orderItemRoutes);
 
 app.listen(PORT, () => console.log(`server running on Port:${PORT}`));

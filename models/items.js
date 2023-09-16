@@ -7,6 +7,13 @@ const itemSchema = new mongoose.Schema({
     unique: true,
     required: true,
   },
+  category: {
+    type: String,
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now,
+  },
 });
 
 const Item = mongoose.model("Item", itemSchema);

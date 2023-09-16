@@ -4,6 +4,10 @@ export const listOrderItemsBulk = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const perPage = parseInt(req.query.per_page) || 20;
+    const status = req.query.status;
+    const searchQuery = req.query.search || "";
+    const startDate = req.query.start_date;
+    const endDate = req.query.end_date;
 
     let aggregationPipeline = [
       {
@@ -32,13 +36,24 @@ export const listOrderItemsBulk = async (req, res) => {
       },
     ];
 
-    if (Object.keys(req.query).includes("status")) {
-      aggregationPipeline.unshift({
-        $match: {
-          status: parseInt(req.query.status),
-        },
-      });
+    const searchPattern = new RegExp(searchQuery, "i");
+
+    let query = {};
+
+    if (searchPattern) {
+      query.name = { $regex: searchPattern };
     }
+    if (startDate && endDate) {
+      query.createdAt = { $gte: new Date(startDate), $lte: new Date(endDate) };
+    }
+
+    if (status) {
+      query.status = parseInt(status);
+    }
+
+    aggregationPipeline.unshift({
+      $match: query,
+    });
 
     const aggregatedResult = await OrderItem.aggregate(aggregationPipeline);
 
@@ -49,6 +64,7 @@ export const listOrderItemsBulk = async (req, res) => {
       .status(200)
       .json({ data: paginatedItems, page, perPage, totalCount, error: false });
   } catch (error) {
+    console.log(error);
     res.status(500).json({ error, message: "Internal server error" });
   }
 };
@@ -57,15 +73,30 @@ export const listOrderItems = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const perPage = parseInt(req.query.per_page) || 20;
+    const status = req.query.status;
+    const searchQuery = req.query.search || "";
+    const startDate = req.query.start_date;
+    const endDate = req.query.end_date;
 
-    const statusesToFilter = req.query.status ? [req.query.status] : [0, 1];
+    const searchPattern = new RegExp(searchQuery, "i");
 
-    const total = await OrderItem.where({
-      status: { $in: statusesToFilter },
-    }).countDocuments();
+    let query = {};
 
-    const data = await OrderItem.find()
-      .where({ status: { $in: statusesToFilter } })
+    if (searchPattern) {
+      query.name = { $regex: searchPattern };
+    }
+
+    if (startDate && endDate) {
+      query.createdAt = { $gte: new Date(startDate), $lte: new Date(endDate) };
+    }
+
+    const statusesToFilter = status ? [status] : [0, 1];
+
+    query.status = { $in: statusesToFilter };
+
+    const total = await OrderItem.countDocuments(query);
+
+    const data = await OrderItem.find(query)
       .skip((page - 1) * perPage)
       .limit(perPage)
       .select("-__v")

@@ -16,7 +16,14 @@ export const createOrder = async (req, res) => {
         let itemId;
 
         if (item.id) {
-          itemId = item.id;
+          const isExistingItem = await Item.findById(item.id);
+          if (isExistingItem) {
+            itemId = item.id;
+          } else {
+            const newItem = new Item({ name: item.name });
+            const savedItem = await newItem.save();
+            itemId = savedItem._id;
+          }
         } else {
           const newItem = new Item({ name: item.name });
           const savedItem = await newItem.save();
@@ -56,17 +63,35 @@ export const createOrder = async (req, res) => {
 
 export const listOrders = async (req, res) => {
   try {
-    const page = parseInt(req.query.page) || 1; // Default to page 1 if 'page' is not provided
-    const perPage = parseInt(req.query.per_page) || 20; // Default to 10 items per page if 'per_page' is not provided
+    const page = parseInt(req.query.page) || 1;
+    const perPage = parseInt(req.query.per_page) || 20;
+    const status = req.query.status;
+    const searchQuery = req.query.search || "";
+    const startDate = req.query.start_date;
+    const endDate = req.query.end_date;
 
-    const statusesToFilter = req.query.status ? [req.query.status] : [0, 1];
+    const searchPattern = new RegExp(searchQuery, "i");
 
-    const total = await Order.where({
-      orderStatus: { $in: statusesToFilter },
-    }).countDocuments();
+    let query = {};
 
-    const orders = await Order.find()
-      .where({ orderStatus: { $in: statusesToFilter } })
+    if (searchPattern) {
+      query = {
+        $or: [{ shopName: searchPattern }, { customerName: searchPattern }],
+      };
+    }
+
+    if (startDate && endDate) {
+      query.createdAt = { $gte: new Date(startDate), $lte: new Date(endDate) };
+    }
+
+    const statusesToFilter = status ? [status] : [0, 1];
+
+    query.orderStatus = { $in: statusesToFilter };
+
+    console.log(query, "query");
+    const total = await Order.countDocuments(query);
+
+    const orders = await Order.find(query)
       .populate("orderItems")
       .skip((page - 1) * perPage)
       .limit(perPage)

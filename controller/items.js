@@ -1,13 +1,18 @@
 import Item from "../models/items.js";
+import { capitalize } from "../utils/stringFunctions.js";
 
 export const addItem = async (req, res) => {
   try {
     if (!req.body.name) {
       res.status(400).json({ message: "Item's name is required", error: true });
     } else {
-      const item = new Item({
-        name: req.body.name,
-      });
+      const newItem = {
+        name: capitalize(req.body.name),
+      };
+      if (req.body.category) {
+        newItem.category = capitalize(req.body.category);
+      }
+      const item = new Item(newItem);
       await item.save();
       res.status(200).json({ message: "success", item, error: false });
     }
@@ -22,12 +27,32 @@ export const addItem = async (req, res) => {
 
 export const listItems = async (req, res) => {
   try {
-    const page = parseInt(req.query.page) || 1; // Default to page 1 if 'page' is not provided
-    const perPage = parseInt(req.query.per_page) || 20; // Default to 10 items per page if 'per_page' is not provided
+    const page = parseInt(req.query.page) || 1;
+    const perPage = parseInt(req.query.per_page) || 20;
+    const category = req.query.category;
+    const searchQuery = req.query.search || "";
+    const startDate = req.query.start_date;
+    const endDate = req.query.end_date;
 
-    const total = await Item.countDocuments();
+    const searchPattern = new RegExp(searchQuery, "i");
 
-    const items = await Item.find()
+    let query = {};
+
+    if (searchPattern) {
+      query.name = { $regex: searchPattern };
+    }
+
+    if (startDate && endDate) {
+      query.createdAt = { $gte: new Date(startDate), $lte: new Date(endDate) };
+    }
+
+    if (category) {
+      query.category = category;
+    }
+
+    const total = await Item.countDocuments(query);
+
+    const items = await Item.find(query)
       .skip((page - 1) * perPage)
       .limit(perPage)
       .select("-__v");
@@ -36,6 +61,7 @@ export const listItems = async (req, res) => {
       .status(200)
       .json({ data: items, total, currentPage: page, perPage, error: false });
   } catch (error) {
+    console.log(error);
     res.status(500).json({ error });
   }
 };
@@ -55,5 +81,15 @@ export const deleteItem = async (req, res) => {
       .json({ message: "Item deleted successfully", error: false });
   } catch (error) {
     res.status(500).json({ error });
+  }
+};
+
+export const listCategories = async (req, res) => {
+  try {
+    const uniqueCategories = await Item.distinct("category");
+
+    res.status(200).json({ categories: uniqueCategories, error: false });
+  } catch (error) {
+    res.status(500).json({ error, message: "Internal server error" });
   }
 };

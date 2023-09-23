@@ -61,6 +61,8 @@ export const createOrder = async (req, res) => {
   }
 };
 
+///// LIST ORDERS
+
 export const listOrders = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
@@ -88,7 +90,6 @@ export const listOrders = async (req, res) => {
 
     query.orderStatus = { $in: statusesToFilter };
 
-    console.log(query, "query");
     const total = await Order.countDocuments(query);
 
     const orders = await Order.find(query)
@@ -105,6 +106,8 @@ export const listOrders = async (req, res) => {
     res.status(500).json({ error });
   }
 };
+
+///// DELETE ORDER
 
 export const deleteOrder = async (req, res) => {
   try {
@@ -123,22 +126,82 @@ export const deleteOrder = async (req, res) => {
   }
 };
 
-export const updateOrderStatus = async (req, res) => {
+///// UPDATE ORDER
+
+export const updateOrder = async (req, res) => {
   try {
-    if (req.body.status == undefined || req.body.id == undefined) {
+    const { orderStatus, customerName, shopName, orderItems, _id } = req.body;
+
+    if (
+      orderStatus == undefined ||
+      _id == undefined ||
+      customerName == undefined
+    ) {
       res.status(400).json({
-        message: "The id, status feilds are required",
+        message: "The _id, orderStatus, customerName feilds are required",
         error: true,
       });
       return;
     }
-    const result = await Order.findByIdAndUpdate(
-      req.body.id,
-      {
-        orderStatus: req.body.status,
-      },
-      { new: true }
-    );
+
+    let updatedOrderItems = [];
+
+    if (orderItems && orderItems.length > 0) {
+      for (const item of orderItems) {
+        if (!item._id) {
+          let itemId;
+
+          if (item.itemId) {
+            const isExistingItem = await Item.findById(item.itemId);
+            if (isExistingItem) {
+              itemId = item.itemId;
+            } else {
+              const newItem = new Item({ name: item.name });
+              const savedItem = await newItem.save();
+              itemId = savedItem._id;
+            }
+          } else {
+            const newItem = new Item({ name: item.name });
+            const savedItem = await newItem.save();
+            itemId = savedItem._id;
+          }
+
+          const orderItem = new OrderItem({
+            itemId,
+            name: item.name,
+            count: item.count,
+            status: 0,
+            orderId: _id,
+          });
+
+          await orderItem.save();
+
+          updatedOrderItems.push(orderItem._id);
+        } else {
+          await OrderItem.findByIdAndUpdate(item._id, item);
+          updatedOrderItems.push(item._id);
+        }
+      }
+    } else {
+      res
+        .status(400)
+        .json({ error: true, message: "orderItems cannot be empty" });
+      return;
+    }
+
+    const updatedOrderFeilds = {
+      orderItems: updatedOrderItems,
+      customerName,
+      orderStatus,
+    };
+
+    if (shopName) {
+      updatedOrderFeilds.shopName = shopName;
+    }
+
+    const result = await Order.findByIdAndUpdate(_id, updatedOrderFeilds, {
+      new: true,
+    });
 
     if (!result) {
       res
@@ -146,10 +209,9 @@ export const updateOrderStatus = async (req, res) => {
         .json({ message: "No orders found with that id", error: true });
     }
 
-    res
-      .status(200)
-      .json({ data: result, message: "Status updated succesfully" });
+    res.status(200).json({ data: result, message: "Updated succesfully" });
   } catch (error) {
+    console.log(error);
     res.status(500).json({ error, message: "Internal server error" });
   }
 };

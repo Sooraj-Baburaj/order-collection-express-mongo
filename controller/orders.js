@@ -1,6 +1,7 @@
 import Item from "../models/items.js";
 import OrderItem from "../models/orderItem.js";
 import Order from "../models/orders.js";
+import { capitalize } from "../utils/stringFunctions.js";
 
 export const createOrder = async (req, res) => {
   try {
@@ -20,12 +21,20 @@ export const createOrder = async (req, res) => {
           if (isExistingItem) {
             itemId = item.id;
           } else {
-            const newItem = new Item({ name: item.name });
+            let newItemRef = { name: item.name };
+            if (item.category) {
+              newItemRef.category = capitalize(item.category);
+            }
+            const newItem = new Item(newItemRef);
             const savedItem = await newItem.save();
             itemId = savedItem._id;
           }
         } else {
-          const newItem = new Item({ name: item.name });
+          let newItemRef = { name: item.name };
+          if (item.category) {
+            newItemRef.category = capitalize(item.category);
+          }
+          const newItem = new Item(newItemRef);
           const savedItem = await newItem.save();
           itemId = savedItem._id;
         }

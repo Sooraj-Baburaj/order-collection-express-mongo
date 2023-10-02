@@ -43,6 +43,7 @@ export const createOrder = async (req, res) => {
           itemId,
           name: item.name,
           count: item.count,
+          category: capitalize(item.category),
           status: 0,
           orderId: order._id,
         });
@@ -179,6 +180,7 @@ export const updateOrder = async (req, res) => {
             itemId,
             name: item.name,
             count: item.count,
+            category: capitalize(item.category),
             status: 0,
             orderId: _id,
           });
@@ -210,7 +212,7 @@ export const updateOrder = async (req, res) => {
 
     const result = await Order.findByIdAndUpdate(_id, updatedOrderFeilds, {
       new: true,
-    });
+    }).populate("orderItems");
 
     if (!result) {
       res

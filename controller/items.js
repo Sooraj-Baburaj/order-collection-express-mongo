@@ -1,6 +1,24 @@
 import Item from "../models/items.js";
 import { capitalize } from "../utils/stringFunctions.js";
 
+export const getItem = async (req, res) => {
+  try {
+    const itemId = req.params.id;
+
+    const item = await Item.findById(itemId);
+
+    if (!item) {
+      res.status(404).json({ message: "Item not found", error: true });
+      return;
+    }
+
+    res.status(200).json({ message: "success", data: item });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Internal Server Error", error });
+  }
+};
+
 export const addItem = async (req, res) => {
   try {
     if (!req.body.name) {
@@ -12,6 +30,9 @@ export const addItem = async (req, res) => {
       if (req.body.category) {
         newItem.category = capitalize(req.body.category);
       }
+      if (req.body.rate) {
+        newItem.rate = req.body.rate;
+      }
       const item = new Item(newItem);
       await item.save();
       res.status(200).json({ message: "success", item, error: false });
@@ -22,6 +43,37 @@ export const addItem = async (req, res) => {
     } else {
       res.status(500).json({ error });
     }
+  }
+};
+
+export const updateItem = async (req, res) => {
+  const itemId = req.params.id;
+
+  try {
+    const item = await Item.findById(itemId);
+
+    if (!item) {
+      return res.status(404).json({ error: "Item not found" });
+    }
+
+    if (req.body.name) {
+      item.name = req.body.name;
+    }
+
+    if (req.body.category) {
+      item.category = req.body.category;
+    }
+
+    if (req.body.rate) {
+      item.rate = req.body.rate;
+    }
+
+    const updatedItem = await item.save();
+
+    res.status(200).json(updatedItem);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Internal Server Error" });
   }
 };
 

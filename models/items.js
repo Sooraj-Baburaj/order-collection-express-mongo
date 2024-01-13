@@ -10,6 +10,9 @@ const itemSchema = new mongoose.Schema({
   category: {
     type: String,
   },
+  rate: {
+    type: Number,
+  },
   createdAt: {
     type: Date,
     default: Date.now,

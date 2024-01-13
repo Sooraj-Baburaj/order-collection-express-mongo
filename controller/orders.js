@@ -222,7 +222,25 @@ export const updateOrder = async (req, res) => {
 
     res.status(200).json({ data: result, message: "Updated succesfully" });
   } catch (error) {
-    console.log(error);
     res.status(500).json({ error, message: "Internal server error" });
+  }
+};
+
+// GET SINGLE ORDER
+
+export const getOrder = async (req, res) => {
+  try {
+    const orderId = req.params.id;
+
+    const result = await Order.findById(orderId).populate("orderItems");
+
+    if (!result) {
+      res.status(400).json({ message: "Order not found", error: true });
+      return;
+    }
+
+    res.status(200).json({ message: "success", data: result });
+  } catch (error) {
+    res.status(400).json({ message: "Internal server error", error });
   }
 };

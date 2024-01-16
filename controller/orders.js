@@ -105,7 +105,13 @@ export const listOrders = async (req, res) => {
 
     const orders = await Order.find(query)
       .sort({ createdAt: -1 })
-      .populate("orderItems")
+      .populate({
+        path: "orderItems",
+        populate: {
+          path: "itemId",
+          model: "Item",
+        },
+      })
       .skip((page - 1) * perPage)
       .limit(perPage)
       .select("-__v")
@@ -234,7 +240,13 @@ export const getOrder = async (req, res) => {
   try {
     const orderId = req.params.id;
 
-    const result = await Order.findById(orderId).populate("orderItems");
+    const result = await Order.findById(orderId).populate({
+      path: "orderItems",
+      populate: {
+        path: "itemId",
+        model: "Item",
+      },
+    });
 
     if (!result) {
       res.status(400).json({ message: "Order not found", error: true });

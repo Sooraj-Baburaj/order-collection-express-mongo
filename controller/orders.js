@@ -43,7 +43,7 @@ export const createOrder = async (req, res) => {
           itemId,
           name: item.name,
           count: item.count,
-          category: capitalize(item.category),
+          category: capitalize(item?.category ?? ""),
           status: 0,
           orderId: order._id,
         });
@@ -66,8 +66,9 @@ export const createOrder = async (req, res) => {
     if (error?.code === 11000) {
       res.status(400).json({ message: "Item already exists!", error: true });
     } else {
-      res.status(500).json({ error });
+      res.status(500).json({ error: JSON.stringify(error) });
     }
+    console.log(error);
   }
 };
 

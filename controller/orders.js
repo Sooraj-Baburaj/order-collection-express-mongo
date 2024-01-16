@@ -104,6 +104,7 @@ export const listOrders = async (req, res) => {
     const total = await Order.countDocuments(query);
 
     const orders = await Order.find(query)
+      .sort({ createdAt: -1 })
       .populate("orderItems")
       .skip((page - 1) * perPage)
       .limit(perPage)

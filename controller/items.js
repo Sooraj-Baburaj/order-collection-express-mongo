@@ -105,6 +105,7 @@ export const listItems = async (req, res) => {
     const total = await Item.countDocuments(query);
 
     const items = await Item.find(query)
+      .sort({ createdAt: -1 })
       .skip((page - 1) * perPage)
       .limit(perPage)
       .select("-__v");

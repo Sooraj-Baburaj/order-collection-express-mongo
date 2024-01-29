@@ -169,10 +169,10 @@ export const updateOrder = async (req, res) => {
         if (!item._id) {
           let itemId;
 
-          if (item.itemId) {
-            const isExistingItem = await Item.findById(item.itemId);
+          if (item.id) {
+            const isExistingItem = await Item.findById(item.id);
             if (isExistingItem) {
-              itemId = item.itemId;
+              itemId = item.id;
             } else {
               const newItem = new Item({ name: item.name });
               const savedItem = await newItem.save();

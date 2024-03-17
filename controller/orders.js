@@ -5,10 +5,10 @@ import { capitalize } from "../utils/stringFunctions.js";
 
 export const createOrder = async (req, res) => {
   try {
-    const { customerName, shopName, orderItems } = req.body;
+    const { customerNumber, shopName, orderItems } = req.body;
 
     const order = new Order({
-      customerName,
+      customerNumber,
       shopName,
     });
 
@@ -89,7 +89,7 @@ export const listOrders = async (req, res) => {
 
     if (searchPattern) {
       query = {
-        $or: [{ shopName: searchPattern }, { customerName: searchPattern }],
+        $or: [{ shopName: searchPattern }, { customerNumber: searchPattern }],
       };
     }
 
@@ -148,15 +148,15 @@ export const deleteOrder = async (req, res) => {
 
 export const updateOrder = async (req, res) => {
   try {
-    const { orderStatus, customerName, shopName, orderItems, _id } = req.body;
+    const { orderStatus, customerNumber, shopName, orderItems, _id } = req.body;
 
     if (
       orderStatus == undefined ||
       _id == undefined ||
-      customerName == undefined
+      customerNumber == undefined
     ) {
       res.status(400).json({
-        message: "The _id, orderStatus, customerName feilds are required",
+        message: "The _id, orderStatus, customerNumber feilds are required",
         error: true,
       });
       return;
@@ -210,7 +210,7 @@ export const updateOrder = async (req, res) => {
 
     const updatedOrderFeilds = {
       orderItems: updatedOrderItems,
-      customerName,
+      customerNumber,
       orderStatus,
     };
 

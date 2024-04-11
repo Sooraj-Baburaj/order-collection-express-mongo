@@ -18,9 +18,7 @@ app.use(express.urlencoded({ limit: "30mb", extended: true }));
 const PORT = process.env.PORT || 5000;
 
 mongoose
-  .connect(
-    "mongodb+srv://anaschemmala50:XX1Q5l2WXptDC77B@cluster0.to1ok26.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
-  )
+  .connect(process.env.DATABASE_URL)
   .then(() => console.log("MongoDB connected..."))
   .catch((err) => console.log(err));
 

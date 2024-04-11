@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 import OrderItem from "./orderItem.js";
 
 const orderSchema = new mongoose.Schema({
-  customerNumber: { type: String, required: true },
+  contactNumber: { type: String, required: true },
   shopName: { type: String },
   createdAt: { type: Date, default: Date.now },
   orderStatus: { type: Number, enum: [0, 1], default: 0 },

@@ -5,11 +5,13 @@ import { capitalize } from "../utils/stringFunctions.js";
 
 export const createOrder = async (req, res) => {
   try {
-    const { contactNumber, shopName, orderItems } = req.body;
+    const { contactNumber, shopName, orderItems, shopId, salesman } = req.body;
 
     const order = new Order({
       contactNumber,
       shopName,
+      shopId,
+      salesman,
     });
 
     if (orderItems && orderItems.length > 0) {
@@ -43,6 +45,7 @@ export const createOrder = async (req, res) => {
           itemId,
           name: item.name,
           count: item.count,
+          unit: item.unit,
           category: capitalize(item?.category ?? ""),
           status: 0,
           orderId: order._id,
@@ -148,7 +151,15 @@ export const deleteOrder = async (req, res) => {
 
 export const updateOrder = async (req, res) => {
   try {
-    const { orderStatus, contactNumber, shopName, orderItems, _id } = req.body;
+    const {
+      orderStatus,
+      contactNumber,
+      shopName,
+      shopId,
+      salesman,
+      orderItems,
+      _id,
+    } = req.body;
 
     if (
       orderStatus == undefined ||
@@ -188,6 +199,7 @@ export const updateOrder = async (req, res) => {
             itemId,
             name: item.name,
             count: item.count,
+            unit: item.unit,
             category: capitalize(item.category),
             status: 0,
             orderId: _id,
@@ -212,6 +224,8 @@ export const updateOrder = async (req, res) => {
       orderItems: updatedOrderItems,
       contactNumber,
       orderStatus,
+      shopId,
+      salesman,
     };
 
     if (shopName) {

@@ -2,8 +2,8 @@ import mongoose from "mongoose";
 
 const orderItemSchema = new mongoose.Schema({
   name: String,
+  unit: String,
   count: Number,
-  category: String,
   status: { type: Number, enum: [0, 1], default: 0 },
   createdAt: {
     type: Date,

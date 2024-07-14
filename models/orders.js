@@ -5,6 +5,8 @@ import OrderItem from "./orderItem.js";
 const orderSchema = new mongoose.Schema({
   contactNumber: { type: String, required: true },
   shopName: { type: String },
+  shopId: { type: String },
+  salesman: { type: String },
   createdAt: { type: Date, default: Date.now },
   orderStatus: { type: Number, enum: [0, 1], default: 0 },
   orderItems: [{ type: mongoose.Schema.Types.ObjectId, ref: "OrderItem" }],

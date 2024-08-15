@@ -248,7 +248,9 @@ export const updateOrder = async (req, res) => {
 
     res.status(200).json({ data: result, message: "Updated succesfully" });
   } catch (error) {
-    res.status(500).json({ error, message: "Internal server error" });
+
+    console.log(error,"shshha")
+    res.status(500).json({ error, message: `Internal server error${error}` });
   }
 };
 

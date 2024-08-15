@@ -5,7 +5,8 @@ import { capitalize } from "../utils/stringFunctions.js";
 
 export const createOrder = async (req, res) => {
   try {
-    const { contactNumber, shopName, orderItems, shopId, salesman } = req.body;
+    const { contactNumber, shopName, orderItems, shopId, salesman,vehicleNumber } = req.body;
+
 
     const order = new Order({
       contactNumber,

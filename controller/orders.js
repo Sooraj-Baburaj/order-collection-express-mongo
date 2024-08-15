@@ -12,7 +12,7 @@ export const createOrder = async (req, res) => {
       shopName,
       shopId,
       salesman,
-      // vehicleNumber
+      vehicleNumber,
     });
 
     if (orderItems && orderItems.length > 0) {
@@ -156,9 +156,9 @@ export const updateOrder = async (req, res) => {
       orderStatus,
       contactNumber,
       shopName,
-      // vehicleNumber,
       shopId,
       salesman,
+      vehicleNumber,
       orderItems,
       _id,
     } = req.body;
@@ -228,7 +228,7 @@ export const updateOrder = async (req, res) => {
       orderStatus,
       shopId,
       salesman,
-      // vehicleNumber
+      vehicleNumber,
     };
 
     if (shopName) {

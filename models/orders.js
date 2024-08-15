@@ -7,7 +7,7 @@ const orderSchema = new mongoose.Schema({
   shopName: { type: String },
   shopId: { type: String },
   salesman: { type: String },
-  // vehicleNumber: { type: String },
+  vehicleNumber: { type: String },
   createdAt: { type: Date, default: Date.now },
   orderStatus: { type: Number, enum: [0, 1], default: 0 },
   orderItems: [{ type: mongoose.Schema.Types.ObjectId, ref: "OrderItem" }],

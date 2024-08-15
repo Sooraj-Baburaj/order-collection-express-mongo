@@ -198,12 +198,12 @@ export const updateOrder = async (req, res) => {
             itemId = savedItem._id;
           }
 
+
           const orderItem = new OrderItem({
             itemId,
             name: item.name,
             count: item.count,
             unit: item.unit,
-            category: capitalize(item.category),
             status: 0,
             orderId: _id,
           });

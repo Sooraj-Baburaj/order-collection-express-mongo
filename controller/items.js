@@ -80,7 +80,7 @@ export const updateItem = async (req, res) => {
 export const listItems = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
-    const perPage = parseInt(req.query.per_page) || 20;
+    const perPage = parseInt(req.query.per_page) || 100;
     const category = req.query.category;
     const searchQuery = req.query.search || "";
     const startDate = req.query.start_date;

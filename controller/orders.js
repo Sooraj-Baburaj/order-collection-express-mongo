@@ -119,7 +119,7 @@ export const listOrders = async (req, res) => {
       })
       .skip((page - 1) * perPage)
       .limit(perPage)
-      .select("-__v vehicleNumber") // Include vehicleNumber in the response
+      .select("-__v")
       .exec();
 
     res
@@ -129,7 +129,6 @@ export const listOrders = async (req, res) => {
     res.status(500).json({ error });
   }
 };
-
 
 ///// DELETE ORDER
 

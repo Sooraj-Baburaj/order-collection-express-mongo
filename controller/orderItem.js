@@ -75,8 +75,20 @@ export const listOrderItems = async (req, res) => {
     const perPage = parseInt(req.query.per_page) || 20;
     const status = req.query.status;
     const searchQuery = req.query.search || "";
-    const startDate = req.query.start_date;
-    const endDate = req.query.end_date;
+    const startDate = req.query.start_date ? new Date(req.query.start_date) : null;
+    const endDate = req.query.end_date ? new Date(req.query.end_date) : null;
+
+    let aggregationPipeline = [];
+
+    if (startDate && endDate) {
+      // Adjust endDate to include the whole day
+      endDate.setHours(23, 59, 59, 999);
+      aggregationPipeline.push({
+        $match: {
+          createdAt: { $gte: startDate, $lte: endDate }
+        }
+      });
+    }
 
     const searchPattern = new RegExp(searchQuery, "i");
 

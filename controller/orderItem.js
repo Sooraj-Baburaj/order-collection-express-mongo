@@ -15,6 +15,8 @@ export const listOrderItemsBulk = async (req, res) => {
           _id: "$name",
           count: { $sum: "$count" },
           order_ids: { $addToSet: "$orderId" },
+          createdAt: { $first: "$createdAt" } // Include the createdAt field
+
         },
       },
       {
@@ -23,6 +25,8 @@ export const listOrderItemsBulk = async (req, res) => {
           name: "$_id",
           count: 1,
           order_ids: 1,
+          createdAt: 1 // Ensure createdAt is included in the output
+
         },
       },
       {

@@ -1,6 +1,6 @@
 import OrderItem from "../models/orderItem.js";
 
-export const listBulkOrderItems = async (req, res) => {
+export const listOrderItemsBulk = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const perPage = parseInt(req.query.per_page) || 20;
@@ -9,85 +9,67 @@ export const listBulkOrderItems = async (req, res) => {
     const startDate = req.query.start_date;
     const endDate = req.query.end_date;
 
-    // Build a query object for filtering
-    let query = {};
-
-    // Search filter
-    if (searchQuery) {
-      query.name = { $regex: new RegExp(searchQuery, "i") };
-    }
-
-    // Date range filter
-    if (startDate && endDate) {
-      query.createdAt = {
-        $gte: new Date(startDate),
-        $lte: new Date(endDate)
-      };
-    }
-
-    // Status filter
-    if (status) {
-      query.status = parseInt(status);
-    }
-
-    // Aggregation pipeline for grouping by shop and item name
-    const aggregationPipeline = [
-      { $match: query }, // Apply filters first
-
+    let aggregationPipeline = [
       {
         $group: {
-          _id: {
-            name: "$name",
-            shopName: "$shopName"
-          },
-          totalOrders: { $sum: "$count" }, // Sum of order count
-          orderIds: { $addToSet: "$orderId" }, // Set of unique order IDs
-          createdAt: { $first: "$createdAt" } // First created date (can be adjusted as needed)
-        }
+          _id: "$name",
+          count: { $sum: "$count" },
+          order_ids: { $addToSet: "$orderId" },
+          createdAt: { $first: "$createdAt" } // Include the createdAt field
+
+        },
       },
       {
         $project: {
           _id: 0,
-          name: "$_id.name",
-          shopName: "$_id.shopName",
-          totalOrders: 1,
-          orderIds: 1,
-          createdAt: 1
-        }
-      },
-      {
-        $sort: { createdAt: -1 } // Sort by created date (newest first)
+          name: "$_id",
+          count: 1,
+          order_ids: 1,
+          createdAt: 1 // Ensure createdAt is included in the output
+
+        },
       },
       {
         $facet: {
           paginatedItems: [
             { $skip: (page - 1) * perPage },
-            { $limit: perPage }
+            { $limit: perPage },
           ],
-          totalCount: [{ $count: "count" }]
-        }
-      }
+          totalCount: [{ $group: { _id: null, totalCount: { $sum: 1 } } }],
+        },
+      },
     ];
+
+    const searchPattern = new RegExp(searchQuery, "i");
+
+    let query = {};
+
+    if (searchPattern) {
+      query.name = { $regex: searchPattern };
+    }
+    if (startDate && endDate) {
+      query.createdAt = { $gte: new Date(startDate), $lte: new Date(endDate) };
+    }
+
+    if (status) {
+      query.status = parseInt(status);
+    }
+
+    aggregationPipeline.unshift({
+      $match: query,
+    });
 
     const aggregatedResult = await OrderItem.aggregate(aggregationPipeline);
 
     const paginatedItems = aggregatedResult[0].paginatedItems;
-    const totalCount = aggregatedResult[0].totalCount[0]?.count || 0;
+    const totalCount = aggregatedResult[0].totalCount[0]?.totalCount || 0;
 
-    // Return paginated result
-    res.status(200).json({
-      data: paginatedItems,
-      page,
-      perPage,
-      totalCount,
-      error: false
-    });
+    res
+      .status(200)
+      .json({ data: paginatedItems, page, perPage, totalCount, error: false });
   } catch (error) {
-    console.error("Error fetching bulk order items:", error);
-    res.status(500).json({
-      error: true,
-      message: "Internal server error"
-    });
+    console.log(error);
+    res.status(500).json({ error, message: "Internal server error" });
   }
 };
 

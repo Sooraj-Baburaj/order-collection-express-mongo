@@ -19,37 +19,17 @@ export const listOrderItemsBulk = async (req, res) => {
         },
       },
       {
-        $group: {
-          _id: "$_id.name",
-          shopOrders: {
-            $push: {
-              shopName: "$_id.shopName",
-              orderCount: "$count",
-              order_ids: "$order_ids",
-              createdAt: "$createdAt"
-            }
-          },
-          totalOrders: { $sum: "$count" }
-        },
-      },
-      {
         $project: {
           _id: 0,
-          name: "$_id",
-          shopOrders: 1,
-          totalOrders: 1
+          name: "$_id.name",
+          shopName: "$_id.shopName",
+          count: 1,
+          order_ids: 1,
+          createdAt: 1
         },
-      },
-      {
-        $facet: {
-          paginatedItems: [
-            { $skip: (page - 1) * perPage },
-            { $limit: perPage },
-          ],
-          totalCount: [{ $group: { _id: null, totalCount: { $sum: 1 } } }],
-        },
-      },
+      }
     ];
+    
 
     const searchPattern = new RegExp(searchQuery, "i");
 

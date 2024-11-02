@@ -9,7 +9,24 @@ export const listOrderItemsBulk = async (req, res) => {
     const startDate = req.query.start_date;
     const endDate = req.query.end_date;
 
+    const searchPattern = new RegExp(searchQuery, "i");
+
+    let query = {};
+
+    if (searchPattern) {
+      query.name = { $regex: searchPattern };
+    }
+    if (startDate && endDate) {
+      query.createdAt = { $gte: new Date(startDate), $lte: new Date(endDate) };
+    }
+
+    if (status) {
+      query.status = parseInt(status);
+    }
+
+    // Define aggregation pipeline with pagination and grouping
     let aggregationPipeline = [
+      { $match: query },
       {
         $group: {
           _id: {
@@ -30,39 +47,27 @@ export const listOrderItemsBulk = async (req, res) => {
           order_ids: 1,
           createdAt: 1
         },
+      },
+      {
+        $facet: {
+          paginatedItems: [
+            { $skip: (page - 1) * perPage },
+            { $limit: perPage },
+          ],
+          totalCount: [{ $count: "totalCount" }]
+        },
       }
     ];
-    
-
-    const searchPattern = new RegExp(searchQuery, "i");
-
-    let query = {};
-
-    if (searchPattern) {
-      query.name = { $regex: searchPattern };
-    }
-    if (startDate && endDate) {
-      query.createdAt = { $gte: new Date(startDate), $lte: new Date(endDate) };
-    }
-
-    if (status) {
-      query.status = parseInt(status);
-    }
-
-    aggregationPipeline.unshift({
-      $match: query,
-    });
 
     const aggregatedResult = await OrderItem.aggregate(aggregationPipeline);
 
-    const paginatedItems = aggregatedResult[0].paginatedItems;
-    const totalCount = aggregatedResult[0].totalCount[0]?.totalCount || 0;
+    // Check if aggregatedResult[0] exists
+    const paginatedItems = aggregatedResult[0]?.paginatedItems || [];
+    const totalCount = aggregatedResult[0]?.totalCount[0]?.totalCount || 0;
 
-    res
-      .status(200)
-      .json({ data: paginatedItems, page, perPage, totalCount, error: false });
+    res.status(200).json({ data: paginatedItems, page, perPage, totalCount, error: false });
   } catch (error) {
-    console.log(error);
+    console.error("Aggregation Error:", error);  // Log the error for debugging
     res.status(500).json({ error, message: "Internal server error" });
   }
 };

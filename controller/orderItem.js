@@ -12,10 +12,13 @@ export const listOrderItemsBulk = async (req, res) => {
     let aggregationPipeline = [
       {
         $group: {
-          _id: { name: "$name", shopName: "$shopName" },
-          count: { $sum: "$count" },
+          _id: {
+            name: { $ifNull: ["$name", "Unknown Item"] },
+            shopName: { $ifNull: ["$shopName", "Unknown Shop"] }
+          },
+          count: { $sum: { $ifNull: ["$count", 0] } },
           order_ids: { $addToSet: "$orderId" },
-          createdAt: { $first: "$createdAt" }
+          createdAt: { $first: { $ifNull: ["$createdAt", new Date()] } }
         },
       },
       {

@@ -4,19 +4,34 @@ export const listOrderItemsBulk = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const perPage = parseInt(req.query.per_page) || 20;
-    const status = req.query.status;
+    const status = req.query.status ? parseInt(req.query.status) : undefined;
     const searchQuery = req.query.search || "";
-    const startDate = req.query.start_date;
-    const endDate = req.query.end_date;
+    const startDate = req.query.start_date ? new Date(req.query.start_date) : undefined;
+    const endDate = req.query.end_date ? new Date(req.query.end_date) : undefined;
 
-    let aggregationPipeline = [
+    // Initialize the query object for filtering
+    let query = {};
+
+    // Apply filters based on the query parameters
+    if (searchQuery) {
+      query.name = { $regex: new RegExp(searchQuery, "i") };
+    }
+    if (startDate && endDate) {
+      query.createdAt = { $gte: startDate, $lte: endDate };
+    }
+    if (status !== undefined) {
+      query.status = status;
+    }
+
+    // Define the aggregation pipeline
+    const aggregationPipeline = [
+      { $match: query }, // Apply filtering
       {
         $group: {
           _id: "$name",
           count: { $sum: "$count" },
           order_ids: { $addToSet: "$orderId" },
-          createdAt: { $first: "$createdAt" } // Include the createdAt field
-
+          createdAt: { $first: "$createdAt" },
         },
       },
       {
@@ -25,8 +40,7 @@ export const listOrderItemsBulk = async (req, res) => {
           name: "$_id",
           count: 1,
           order_ids: 1,
-          createdAt: 1 // Ensure createdAt is included in the output
-
+          createdAt: 1,
         },
       },
       {
@@ -35,43 +49,31 @@ export const listOrderItemsBulk = async (req, res) => {
             { $skip: (page - 1) * perPage },
             { $limit: perPage },
           ],
-          totalCount: [{ $group: { _id: null, totalCount: { $sum: 1 } } }],
+          totalCount: [{ $count: "totalCount" }],
         },
       },
     ];
 
-    const searchPattern = new RegExp(searchQuery, "i");
-
-    let query = {};
-
-    if (searchPattern) {
-      query.name = { $regex: searchPattern };
-    }
-    if (startDate && endDate) {
-      query.createdAt = { $gte: new Date(startDate), $lte: new Date(endDate) };
-    }
-
-    if (status) {
-      query.status = parseInt(status);
-    }
-
-    aggregationPipeline.unshift({
-      $match: query,
-    });
-
+    // Run the aggregation pipeline
     const aggregatedResult = await OrderItem.aggregate(aggregationPipeline);
 
+    // Extract paginated items and total count from the result
     const paginatedItems = aggregatedResult[0].paginatedItems;
     const totalCount = aggregatedResult[0].totalCount[0]?.totalCount || 0;
 
-    res
-      .status(200)
-      .json({ data: paginatedItems, page, perPage, totalCount, error: false });
+    res.status(200).json({
+      data: paginatedItems,
+      page,
+      perPage,
+      totalCount,
+      error: false,
+    });
   } catch (error) {
-    console.log(error);
-    res.status(500).json({ error, message: "Internal server error" });
+    console.error("Error in listOrderItemsBulk:", error);
+    res.status(500).json({ error: true, message: "Internal server error" });
   }
 };
+
 
 export const listOrderItems = async (req, res) => {
   try {

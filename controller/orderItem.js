@@ -19,7 +19,7 @@ export const listOrderItemsBulk = async (req, res) => {
     if (searchQuery) {
       query.name = { $regex: new RegExp(searchQuery, "i") };
     }
-    if (date && endDate) {
+    if (date) {
       const startDate = new Date(date);
       startDate.setHours(0, 0, 0, 0); // Set to 00:00:00 of that day
 

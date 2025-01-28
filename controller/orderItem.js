@@ -7,12 +7,10 @@ export const listOrderItemsBulk = async (req, res) => {
     const perPage = parseInt(req.query.per_page) || 20;
     const status = req.query.status ? parseInt(req.query.status) : undefined;
     const searchQuery = req.query.search || "";
-    const startDate = req.query.start_date
-      ? new Date(req.query.start_date)
-      : undefined;
-    const endDate = req.query.end_date
-      ? new Date(req.query.end_date)
-      : undefined;
+    const date = req.query.date ? new Date(req.query.date) : undefined;
+    // const endDate = req.query.end_date
+    //   ? new Date(req.query.end_date)
+    //   : undefined;
 
     // Initialize the query object for filtering
     let query = {};
@@ -21,7 +19,12 @@ export const listOrderItemsBulk = async (req, res) => {
     if (searchQuery) {
       query.name = { $regex: new RegExp(searchQuery, "i") };
     }
-    if (startDate && endDate) {
+    if (date && endDate) {
+      const startDate = new Date(date);
+      startDate.setHours(0, 0, 0, 0); // Set to 00:00:00 of that day
+
+      const endDate = new Date(date);
+      endDate.setHours(23, 59, 59, 999);
       query.createdAt = { $gte: startDate, $lte: endDate };
     }
     if (status !== undefined) {

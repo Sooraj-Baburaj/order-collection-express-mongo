@@ -7,12 +7,7 @@ export const listOrderItemsBulk = async (req, res) => {
     const perPage = parseInt(req.query.per_page) || 20;
     const status = req.query.status ? parseInt(req.query.status) : undefined;
     const searchQuery = req.query.search || "";
-    const startDate = req.query.start_date
-      ? new Date(req.query.start_date)
-      : undefined;
-    const endDate = req.query.end_date
-      ? new Date(req.query.end_date)
-      : undefined;
+    const date = req.query.date ? new Date(req.query.date) : undefined;
 
     // Initialize the query object for filtering
     let query = {};
@@ -21,8 +16,11 @@ export const listOrderItemsBulk = async (req, res) => {
     if (searchQuery) {
       query.name = { $regex: new RegExp(searchQuery, "i") };
     }
-    if (startDate && endDate) {
-      query.createdAt = { $gte: startDate, $lte: endDate };
+    if (date) {
+      query.createdAt = {
+        $gte: new Date(date.setHours(0, 0, 0, 0)),
+        $lt: new Date(date.setHours(23, 59, 59, 999)),
+      };
     }
     if (status !== undefined) {
       query.status = status;
@@ -86,8 +84,7 @@ export const listOrderItems = async (req, res) => {
     const perPage = parseInt(req.query.per_page) || 20;
     const status = req.query.status;
     const searchQuery = req.query.search || "";
-    const startDate = req.query.start_date;
-    const endDate = req.query.end_date;
+    const date = req.query.date;
 
     const searchPattern = new RegExp(searchQuery, "i");
 
@@ -97,8 +94,12 @@ export const listOrderItems = async (req, res) => {
       query.name = { $regex: searchPattern };
     }
 
-    if (startDate && endDate) {
-      query.createdAt = { $gte: new Date(startDate), $lte: new Date(endDate) };
+    if (date) {
+      const specificDate = new Date(date);
+      query.createdAt = {
+        $gte: new Date(specificDate.setHours(0, 0, 0, 0)),
+        $lt: new Date(specificDate.setHours(23, 59, 59, 999)),
+      };
     }
 
     const statusesToFilter = status ? [status] : [0, 1];
@@ -115,37 +116,6 @@ export const listOrderItems = async (req, res) => {
     res.status(200).json({ data, page, perPage, total });
   } catch (error) {
     console.error("Error in listOrderItems:", error);
-    res.status(500).json({ error: true, message: "Internal server error" });
-  }
-};
-
-// Update Order Item Status
-export const updateOrderItemStatus = async (req, res) => {
-  try {
-    const { from_status, to_status, name } = req.body;
-
-    if (from_status === undefined || to_status === undefined || !name) {
-      res.status(400).json({
-        message: "The name, to_status, and from_status fields are required",
-        error: true,
-      });
-      return;
-    }
-
-    // Update only existing documents with the correct status
-    const result = await OrderItem.updateMany(
-      { name, status: from_status },
-      { $set: { status: to_status } }, // Use $set to update the status
-      { new: true } // Ensures that only existing documents are modified
-    );
-
-    res.status(200).json({
-      data: result,
-      message: "Status updated successfully",
-      error: false,
-    });
-  } catch (error) {
-    console.error("Error in updateOrderItemStatus:", error);
     res.status(500).json({ error: true, message: "Internal server error" });
   }
 };

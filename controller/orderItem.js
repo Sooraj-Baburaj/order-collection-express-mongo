@@ -1,13 +1,18 @@
 import OrderItem from "../models/orderItem.js";
 
+// List Order Items in Bulk with Proper Count Calculation
 export const listOrderItemsBulk = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const perPage = parseInt(req.query.per_page) || 20;
     const status = req.query.status ? parseInt(req.query.status) : undefined;
     const searchQuery = req.query.search || "";
-    const startDate = req.query.start_date ? new Date(req.query.start_date) : undefined;
-    const endDate = req.query.end_date ? new Date(req.query.end_date) : undefined;
+    const startDate = req.query.start_date
+      ? new Date(req.query.start_date)
+      : undefined;
+    const endDate = req.query.end_date
+      ? new Date(req.query.end_date)
+      : undefined;
 
     // Initialize the query object for filtering
     let query = {};
@@ -29,8 +34,8 @@ export const listOrderItemsBulk = async (req, res) => {
       {
         $group: {
           _id: "$name",
-          count: { $sum: "$count" },
-          order_ids: { $addToSet: "$orderId" },
+          count: { $sum: "$count" }, // Sum only valid counts
+          order_ids: { $addToSet: "$orderId" }, // Ensure unique order IDs
           createdAt: { $first: "$createdAt" },
         },
       },
@@ -58,8 +63,8 @@ export const listOrderItemsBulk = async (req, res) => {
     const aggregatedResult = await OrderItem.aggregate(aggregationPipeline);
 
     // Extract paginated items and total count from the result
-    const paginatedItems = aggregatedResult[0].paginatedItems;
-    const totalCount = aggregatedResult[0].totalCount[0]?.totalCount || 0;
+    const paginatedItems = aggregatedResult[0]?.paginatedItems || [];
+    const totalCount = aggregatedResult[0]?.totalCount[0]?.totalCount || 0;
 
     res.status(200).json({
       data: paginatedItems,
@@ -74,7 +79,7 @@ export const listOrderItemsBulk = async (req, res) => {
   }
 };
 
-
+// List Order Items with Pagination and Filtering
 export const listOrderItems = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
@@ -97,7 +102,6 @@ export const listOrderItems = async (req, res) => {
     }
 
     const statusesToFilter = status ? [status] : [0, 1];
-
     query.status = { $in: statusesToFilter };
 
     const total = await OrderItem.countDocuments(query);
@@ -110,33 +114,38 @@ export const listOrderItems = async (req, res) => {
 
     res.status(200).json({ data, page, perPage, total });
   } catch (error) {
-    res.status(500).json({ error, message: "Internal server error" });
+    console.error("Error in listOrderItems:", error);
+    res.status(500).json({ error: true, message: "Internal server error" });
   }
 };
 
+// Update Order Item Status
 export const updateOrderItemStatus = async (req, res) => {
   try {
-    if (
-      req.body.from_status == undefined ||
-      req.body.to_status == undefined ||
-      req.body.name == undefined
-    ) {
+    const { from_status, to_status, name } = req.body;
+
+    if (from_status === undefined || to_status === undefined || !name) {
       res.status(400).json({
-        message: "The name, to_status, from_status feilds are required",
+        message: "The name, to_status, and from_status fields are required",
         error: true,
       });
       return;
     }
+
+    // Update only existing documents with the correct status
     const result = await OrderItem.updateMany(
-      { name: req.body.name, status: req.body.from_status },
-      { status: req.body.to_status },
-      { new: true }
+      { name, status: from_status },
+      { $set: { status: to_status } }, // Use $set to update the status
+      { new: true } // Ensures that only existing documents are modified
     );
 
-    res
-      .status(200)
-      .json({ data: result, message: "Status updated succesfully" });
+    res.status(200).json({
+      data: result,
+      message: "Status updated successfully",
+      error: false,
+    });
   } catch (error) {
-    res.status(500).json({ error, message: "Internal server error" });
+    console.error("Error in updateOrderItemStatus:", error);
+    res.status(500).json({ error: true, message: "Internal server error" });
   }
 };

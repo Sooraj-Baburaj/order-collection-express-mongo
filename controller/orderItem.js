@@ -3,26 +3,22 @@ import OrderItem from "../models/orderItem.js";
 // List Order Items in Bulk with Proper Count Calculation
 export const listOrderItemsBulk = async (req, res) => {
   try {
-    const page = parseInt(req.query.page) || 1;
-    const perPage = parseInt(req.query.per_page) || 20;
-    const status = req.query.status ? parseInt(req.query.status) : undefined;
+    const page = Number.parseInt(req.query.page) || 1;
+    const perPage = Number.parseInt(req.query.per_page) || 20;
+    const status = req.query.status
+      ? Number.parseInt(req.query.status)
+      : undefined;
     const searchQuery = req.query.search || "";
     const date = req.query.date ? new Date(req.query.date) : undefined;
-    // const endDate = req.query.end_date
-    //   ? new Date(req.query.end_date)
-    //   : undefined;
 
-    // Initialize the query object for filtering
-    let query = {};
+    const query = {};
 
-    // Apply filters based on the query parameters
     if (searchQuery) {
       query.name = { $regex: new RegExp(searchQuery, "i") };
     }
     if (date) {
       const startDate = new Date(date);
-      startDate.setHours(0, 0, 0, 0); // Set to 00:00:00 of that day
-
+      startDate.setHours(0, 0, 0, 0);
       const endDate = new Date(date);
       endDate.setHours(23, 59, 59, 999);
       query.createdAt = { $gte: startDate, $lte: endDate };
@@ -31,14 +27,26 @@ export const listOrderItemsBulk = async (req, res) => {
       query.status = status;
     }
 
-    // Define the aggregation pipeline
     const aggregationPipeline = [
-      { $match: query }, // Apply filtering
+      { $match: query },
+      {
+        $lookup: {
+          from: "orders", // Assuming your orders collection is named 'orders'
+          localField: "orderId",
+          foreignField: "_id",
+          as: "orderDetails",
+        },
+      },
+      {
+        $unwind: "$orderDetails",
+      },
       {
         $group: {
           _id: "$name",
-          count: { $sum: "$count" }, // Sum only valid counts
-          order_ids: { $addToSet: "$orderId" }, // Ensure unique order IDs
+          count: { $sum: "$count" },
+          total: { $sum: { $multiply: ["$count", "$orderDetails.price"] } }, // Assuming price is in the Order model
+          order_ids: { $addToSet: "$orderId" },
+          shops: { $addToSet: "$orderDetails.shopId" }, // Assuming shopId is in the Order model
           createdAt: { $first: "$createdAt" },
         },
       },
@@ -47,7 +55,9 @@ export const listOrderItemsBulk = async (req, res) => {
           _id: 0,
           name: "$_id",
           count: 1,
+          total: 1,
           order_ids: 1,
+          shops: 1,
           createdAt: 1,
         },
       },
@@ -62,10 +72,8 @@ export const listOrderItemsBulk = async (req, res) => {
       },
     ];
 
-    // Run the aggregation pipeline
     const aggregatedResult = await OrderItem.aggregate(aggregationPipeline);
 
-    // Extract paginated items and total count from the result
     const paginatedItems = aggregatedResult[0]?.paginatedItems || [];
     const totalCount = aggregatedResult[0]?.totalCount[0]?.totalCount || 0;
 

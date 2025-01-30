@@ -11,27 +11,38 @@ export const listOrderItemsBulk = async (req, res) => {
     const searchQuery = req.query.search || "";
     const date = req.query.date ? new Date(req.query.date) : undefined;
 
-    const query = {};
+    const matchQuery = {};
 
     if (searchQuery) {
-      query.name = { $regex: new RegExp(searchQuery, "i") };
+      matchQuery.name = { $regex: new RegExp(searchQuery, "i") };
     }
     if (date) {
       const startDate = new Date(date);
       startDate.setHours(0, 0, 0, 0);
       const endDate = new Date(date);
       endDate.setHours(23, 59, 59, 999);
-      query.createdAt = { $gte: startDate, $lte: endDate };
+      matchQuery.createdAt = { $gte: startDate, $lte: endDate };
     }
     if (status !== undefined) {
-      query.status = status;
+      matchQuery.status = status;
     }
 
     const aggregationPipeline = [
-      { $match: query },
+      { $match: matchQuery },
       {
         $lookup: {
-          from: "orders", // Assuming your orders collection is named 'orders'
+          from: "items",
+          localField: "itemId",
+          foreignField: "_id",
+          as: "itemDetails",
+        },
+      },
+      {
+        $unwind: "$itemDetails",
+      },
+      {
+        $lookup: {
+          from: "orders",
           localField: "orderId",
           foreignField: "_id",
           as: "orderDetails",
@@ -42,20 +53,24 @@ export const listOrderItemsBulk = async (req, res) => {
       },
       {
         $group: {
-          _id: "$name",
-          count: { $sum: "$count" },
-          total: { $sum: { $multiply: ["$count", "$orderDetails.price"] } }, // Assuming price is in the Order model
+          _id: "$itemId",
+          name: { $first: "$itemDetails.name" },
+          category: { $first: "$itemDetails.category" },
+          rate: { $first: "$itemDetails.rate" },
+          totalCount: { $sum: "$count" },
           order_ids: { $addToSet: "$orderId" },
-          shops: { $addToSet: "$orderDetails.shopId" }, // Assuming shopId is in the Order model
+          shops: { $addToSet: "$orderDetails.shopId" },
           createdAt: { $first: "$createdAt" },
         },
       },
       {
         $project: {
           _id: 0,
-          name: "$_id",
-          count: 1,
-          total: 1,
+          itemId: "$_id",
+          name: 1,
+          category: 1,
+          rate: 1,
+          totalCount: 1,
           order_ids: 1,
           shops: 1,
           createdAt: 1,
@@ -67,7 +82,7 @@ export const listOrderItemsBulk = async (req, res) => {
             { $skip: (page - 1) * perPage },
             { $limit: perPage },
           ],
-          totalCount: [{ $count: "totalCount" }],
+          totalCount: [{ $count: "count" }],
         },
       },
     ];
@@ -75,7 +90,7 @@ export const listOrderItemsBulk = async (req, res) => {
     const aggregatedResult = await OrderItem.aggregate(aggregationPipeline);
 
     const paginatedItems = aggregatedResult[0]?.paginatedItems || [];
-    const totalCount = aggregatedResult[0]?.totalCount[0]?.totalCount || 0;
+    const totalCount = aggregatedResult[0]?.totalCount[0]?.count || 0;
 
     res.status(200).json({
       data: paginatedItems,

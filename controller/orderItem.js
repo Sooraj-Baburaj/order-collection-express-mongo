@@ -53,13 +53,32 @@ export const listOrderItemsBulk = async (req, res) => {
       },
       {
         $group: {
-          _id: "$itemId",
+          _id: {
+            itemId: "$itemId",
+            shopId: "$orderDetails.shopId",
+          },
           name: { $first: "$itemDetails.name" },
           category: { $first: "$itemDetails.category" },
           rate: { $first: "$itemDetails.rate" },
-          totalCount: { $sum: "$count" },
-          order_ids: { $addToSet: "$orderId" },
-          shops: { $addToSet: "$orderDetails.shopId" },
+          shopName: { $first: "$orderDetails.shopName" },
+          countPerShop: { $sum: "$count" },
+          createdAt: { $first: "$createdAt" },
+        },
+      },
+      {
+        $group: {
+          _id: "$_id.itemId",
+          name: { $first: "$name" },
+          category: { $first: "$category" },
+          rate: { $first: "$rate" },
+          totalCount: { $sum: "$countPerShop" },
+          shops: {
+            $push: {
+              shopId: "$_id.shopId",
+              shopName: "$shopName",
+              count: "$countPerShop",
+            },
+          },
           createdAt: { $first: "$createdAt" },
         },
       },
@@ -71,7 +90,6 @@ export const listOrderItemsBulk = async (req, res) => {
           category: 1,
           rate: 1,
           totalCount: 1,
-          order_ids: 1,
           shops: 1,
           createdAt: 1,
         },
